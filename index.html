@@ -14,6 +14,8 @@
         
         body {
             font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
         }
 
         .custom-scrollbar::-webkit-scrollbar {
@@ -46,32 +48,47 @@
     <script type="text/babel">
         const { useState, useRef, useEffect } = React;
 
-        // Icon component wrapper for Lucide
+        // Componente de Icono corregido para evitar pantallas en blanco
         const Icon = ({ name, size = 24, className = "" }) => {
-            const [iconSvg, setIconSvg] = useState("");
-            
+            const iconRef = useRef(null);
+
             useEffect(() => {
-                if (window.lucide) {
-                    const icon = window.lucide.icons[name];
-                    if (icon) {
-                        // This is a simplified way to render lucide icons in this specific setup
-                        const svg = icon.toSvg({ size, class: className });
-                        setIconSvg(svg);
+                if (window.lucide && iconRef.current) {
+                    const iconData = window.lucide.icons[name];
+                    if (iconData) {
+                        // Limpiar contenido previo
+                        iconRef.current.innerHTML = '';
+                        // Crear el SVG usando el motor de Lucide
+                        const svg = iconData.toSvg({ 
+                            size, 
+                            class: className,
+                            'stroke-width': 2
+                        });
+                        iconRef.current.innerHTML = svg;
                     }
                 }
             }, [name, size, className]);
 
-            return <span dangerouslySetInnerHTML={{ __html: iconSvg }} />;
+            return <span ref={iconRef} className="inline-flex items-center justify-center"></span>;
         };
 
         const App = () => {
             const [activeTab, setActiveTab] = useState('textTools');
             const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+            const [isLoaded, setIsLoaded] = useState(false);
+
+            useEffect(() => {
+                // Pequeño delay para asegurar que Lucide esté listo en el DOM
+                const timer = setTimeout(() => setIsLoaded(true), 100);
+                return () => clearTimeout(timer);
+            }, []);
 
             const handleTabChange = (id) => {
                 setActiveTab(id);
                 setIsSidebarOpen(false);
             };
+
+            if (!isLoaded) return <div class="flex items-center justify-center min-h-screen bg-slate-900 text-white font-bold">Iniciando DataTools...</div>;
 
             return (
                 <div className="min-h-screen flex flex-col md:flex-row">
@@ -112,7 +129,7 @@
                                     <Icon name="ShieldCheck" size={14} />
                                     <span className="text-xs font-bold uppercase tracking-tighter">Modo Privado Activo</span>
                                 </div>
-                                <p className="text-[10px] text-slate-400 leading-relaxed">
+                                <p className="text-[10px] text-slate-400 leading-relaxed text-[11px]">
                                     Procesamiento 100% en cliente. Tus datos no tocan la nube.
                                 </p>
                             </div>
@@ -207,6 +224,7 @@
                     const dniMatch = line.match(/(?:^|\D)(\d{7,8})(?:\D|$)/);
                     if (dniMatch) {
                         const dni = parseInt(dniMatch[1]);
+                        // Rango aproximado 60-90 años (Argentina)
                         if (dni >= 4000000 && dni <= 18500000) filtrados.push(line);
                     }
                 });
@@ -282,7 +300,7 @@
                                 
                                 <div className="flex-1 overflow-y-auto space-y-4 custom-scrollbar pr-2">
                                     {logs.length === 0 ? (
-                                        <div className="text-slate-700 italic text-sm text-center mt-20 font-medium">SISTEMA INACTIVO</div>
+                                        <div className="text-slate-700 italic text-sm text-center mt-20 font-medium tracking-widest">SISTEMA INACTIVO</div>
                                     ) : (
                                         logs.map((log, i) => (
                                             <div key={i} className="border-l-2 border-slate-700 pl-4 py-1.5 animate-in slide-in-from-right-4 duration-300">
