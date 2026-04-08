@@ -1,0 +1,426 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  FileText, 
+  Search, 
+  User, 
+  CreditCard, 
+  Scissors, 
+  Eraser, 
+  Download, 
+  ShieldAlert, 
+  CheckCircle2, 
+  AlertCircle, 
+  Calendar,
+  Menu,
+  X,
+  Database,
+  ShieldCheck,
+  History
+} from 'lucide-react';
+
+/**
+ * MultiTools Web App - Versión Index
+ * Aplicación profesional para procesamiento de datos locales.
+ */
+
+const App = () => {
+  const [activeTab, setActiveTab] = useState('textTools');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Cerrar sidebar en móvil al cambiar de pestaña
+  const handleTabChange = (id) => {
+    setActiveTab(id);
+    setIsSidebarOpen(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans flex flex-col md:flex-row">
+      {/* Botón Mobile Menu */}
+      <button >
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className="md:hidden fixed top-4 right-4 z-50 p-2 bg-blue-600 text-white rounded-full shadow-lg"
+      
+        {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Sidebar / Navigation */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 text-slate-200 transform transition-transform duration-300 ease-in-out flex flex-col shadow-2xl
+        md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="p-8">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-500 rounded-lg">
+              <Database className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-tight">DataTools</h1>
+              <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">Enterprise Edition</p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 px-4 space-y-1.5">
+          <div className="text-[10px] text-slate-500 font-semibold uppercase px-4 mb-2 tracking-widest">Herramientas</div>
+          <TabButton 
+            icon={<Scissors size={18} />} 
+            label="Procesador de Texto" 
+            id="textTools" 
+            active={activeTab} 
+            onClick={handleTabChange} 
+          />
+          <TabButton 
+            icon={<CreditCard size={18} />} 
+            label="Consulta SUBE" 
+            id="sube" 
+            active={activeTab} 
+            onClick={handleTabChange} 
+          />
+          <TabButton 
+            icon={<User size={18} />} 
+            label="Informes Nosis" 
+            id="nosis" 
+            active={activeTab} 
+            onClick={handleTabChange} 
+          />
+          
+          <div className="text-[10px] text-slate-500 font-semibold uppercase px-4 mt-8 mb-2 tracking-widest">Seguridad</div>
+          <div className="px-4 py-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+            <div className="flex items-center gap-2 text-green-400 mb-1">
+              <ShieldCheck size={14} />
+              <span className="text-xs font-bold">Modo Privado</span>
+            </div>
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              Los archivos se procesan en tu navegador. Ningún dato se envía a servidores externos.
+            </p>
+          </div>
+        </nav>
+
+        <div className="p-6 border-t border-slate-800">
+          <div className="flex items-center gap-3 text-slate-400">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-xs font-medium">Sistema Operativo</span>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto relative">
+        <div className="max-w-5xl mx-auto p-6 md:p-12">
+          {activeTab === 'textTools' && <TextToolsPanel />}
+          {activeTab === 'sube' && <PlaceholderPanel title="Consulta SUBE" icon={<CreditCard size={48} />} />}
+          {activeTab === 'nosis' && <PlaceholderPanel title="Módulo Nosis" icon={<User size={48} />} />}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+// --- COMPONENTES ATÓMICOS ---
+
+const TabButton = ({ icon, label, id, active, onClick }) => (
+  <button >
+    onClick={() => onClick(id)}
+    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group ${
+      active === id
+        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
+        : 'hover:bg-slate-800 text-slate-400 hover:text-white'
+    }`}
+ 
+    <span className={`${active === id ? 'text-white' : 'text-slate-500 group-hover:text-blue-400'} transition-colors`}>
+      {icon}
+    </span>
+    <span className="font-semibold text-sm">{label}</span>
+  </button>
+);
+
+const TextToolsPanel = () => {
+  const [fileContent, setFileContent] = useState(null);
+  const [fileName, setFileName] = useState('');
+  const [logs, setLogs] = useState([]);
+  const fileInputRef = useRef(null);
+
+  const addLog = (msg, type = 'info') => {
+    setLogs(prev => [{ msg, type, time: new Date().toLocaleTimeString() }, ...prev].slice(0, 50));
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setFileContent(event.target.result);
+      setFileName(file.name);
+      addLog(`Archivo "${file.name}" cargado correctamente.`, 'success');
+    };
+    reader.readAsText(file);
+  };
+
+  const downloadFile = (name, content) => {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    addLog(`Archivo generado: ${name}`, 'success');
+  };
+
+  const handleLimpiar = () => {
+    if (!fileContent) return addLog("Debes cargar un archivo primero.", "error");
+    const lines = fileContent.split('\n');
+    const cleaned = lines.map(line => {
+      if (!line.includes(':')) return line;
+      const parts = line.split(':');
+      // Lógica para detectar si es una URL y limpiar el prefijo
+      return (line.toLowerCase().startsWith('http') && parts.length >= 3) ? parts.slice(2).join(':') : parts.slice(1).join(':');
+    }).filter(l => l.trim() !== '');
+    downloadFile(`limpio_${fileName}`, cleaned.join('\n'));
+  };
+
+  const handleParsear = () => {
+    if (!fileContent) return addLog("Carga un archivo primero.", "error");
+    const input = prompt("¿Cuántas líneas aleatorias deseas extraer?");
+    const count = parseInt(input);
+    if (isNaN(count) || count <= 0) return;
+
+    const lines = fileContent.split('\n').filter(l => l.trim() !== '');
+    const selected = [];
+    const tempLines = [...lines];
+    
+    for (let i = 0; i < Math.min(count, lines.length); i++) {
+      const idx = Math.floor(Math.random() * tempLines.length);
+      selected.push(tempLines.splice(idx, 1)[0]);
+    }
+
+    const parseadas = selected.map(line => {
+        let part = line;
+        if (line.toLowerCase().startsWith('http') && (line.match(/:/g) || []).length >= 2) {
+          const parts = line.split(':');
+          part = parts[2].includes('/') ? parts[2].split('/')[0] : parts[2];
+        } else {
+          part = line.split(':')[0];
+        }
+        return part;
+    });
+
+    downloadFile('lineas_originales.txt', selected.join('\n'));
+    downloadFile('datos_extraidos.txt', parseadas.join('\n'));
+    downloadFile('sin_guiones.txt', parseadas.map(p => p.replace(/-/g, '')).join('\n'));
+  };
+
+  const handleFiltroEdad = () => {
+    if (!fileContent) return addLog("Carga un archivo primero.", "error");
+    
+    const lines = fileContent.split('\n');
+    const filtrados = [];
+    let contador = 0;
+
+    addLog("Iniciando análisis demográfico (60-90 años)...", "info");
+
+    lines.forEach(line => {
+      // Regex para encontrar secuencias de 7 u 8 dígitos (DNI)
+      const dniMatch = line.match(/(?:^|\D)(\d{7,8})(?:\D|$)/);
+      
+      if (dniMatch) {
+        const dni = parseInt(dniMatch[1]);
+        
+        // Rango DNI aproximado para personas de 60 a 90 años en Argentina (Data 2024)
+        // DNI 4M (~1934, 90 años) hasta DNI 18.5M (~1964, 60 años)
+        if (dni >= 4000000 && dni <= 18500000) {
+          filtrados.push(line);
+          contador++;
+        }
+      }
+    });
+
+    if (filtrados.length > 0) {
+      addLog(`Éxito: Se encontraron ${contador} registros en el rango de edad.`, "success");
+      downloadFile(`segmento_60_90_${fileName}`, filtrados.join('\n'));
+    } else {
+      addLog("No se encontraron personas en el rango de 60 a 90 años.", "error");
+    }
+  };
+
+  const handleBuscar = () => {
+    if (!fileContent) return addLog("Carga un archivo primero.", "error");
+    const term = prompt("Ingresa el término de búsqueda:");
+    if (!term) return;
+    const results = fileContent.split('\n').filter(l => l.toLowerCase().includes(term.toLowerCase()));
+    if (results.length > 0) {
+      addLog(`Búsqueda terminada: ${results.length} coincidencias.`, "success");
+      downloadFile(`busqueda_${term}.txt`, results.join('\n'));
+    } else {
+      addLog("No hubo coincidencias.", "error");
+    }
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-8">
+        <div>
+          <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">Procesador de Datos</h2>
+          <p className="text-slate-500 mt-2 text-lg">Gestiona bases de datos masivas localmente.</p>
+        </div>
+        <div className="flex gap-2">
+          <div className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-tighter flex items-center gap-1">
+            <History size={12} /> Local History: Active
+          </div>
+        </div>
+      </header>
+
+      {/* Upload Zone */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <div>
+            className={`
+              relative border-2 border-dashed rounded-3xl p-12 transition-all duration-300 flex flex-col items-center justify-center cursor-pointer group
+              ${fileContent ? 'border-blue-400 bg-blue-50/30' : 'border-slate-300 bg-white hover:border-blue-400 hover:bg-slate-50'}
+            `}
+            onClick={() => fileInputRef.current.click()}
+          
+            <div className={`p-4 rounded-2xl mb-4 transition-transform group-hover:scale-110 ${fileContent ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+              <FileText size={40} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800">
+              {fileContent ? fileName : 'Sube tu archivo .txt'}
+            </h3>
+            <p className="text-slate-500 mt-1 text-center max-w-xs">
+              Arrastra o haz clic para cargar. Procesamiento instantáneo.
+            </p>
+            <input 
+              type="file" 
+              accept=".txt" 
+              ref={fileInputRef} 
+              className="hidden" 
+              onChange={handleFileUpload} 
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ToolButton 
+              icon={<Eraser />} 
+              title="Limpieza Estándar" 
+              desc="Remueve prefijos URL y protocolos de las líneas."
+              onClick={handleLimpiar}
+              disabled={!fileContent}
+            />
+            <ToolButton 
+              icon={<Scissors />} 
+              title="Muestra Aleatoria" 
+              desc="Extrae una cantidad específica de líneas al azar."
+              onClick={handleParsear}
+              disabled={!fileContent}
+            />
+            <ToolButton 
+              icon={<Calendar className="text-amber-500" />} 
+              title="Filtro de Edad" 
+              desc="Extrae personas de 60 a 90 años vía DNI/CUIL."
+              onClick={handleFiltroEdad}
+              disabled={!fileContent}
+              isSpecial={true}
+            />
+            <ToolButton 
+              icon={<Search />} 
+              title="Filtrado por Keyword" 
+              desc="Genera un archivo solo con líneas que contengan tu búsqueda."
+              onClick={handleBuscar}
+              disabled={!fileContent}
+            />
+          </div>
+        </div>
+
+        {/* Sidebar Log */}
+        <div className="lg:col-span-1">
+          <div className="bg-slate-900 rounded-3xl p-6 shadow-2xl h-full flex flex-col min-h-[500px]">
+            <div className="flex items-center justify-between mb-6">
+              <span className="text-blue-400 text-xs font-black uppercase tracking-[0.2em]">Live Monitoring</span>
+              <div className="flex gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+              {logs.length === 0 && (
+                <div className="text-slate-600 italic text-sm text-center mt-12">
+                  No hay actividad registrada.
+                </div>
+              )}
+              {logs.map((log, i) => (
+                <div key={i} className="border-l-2 border-slate-700 pl-4 py-1 animate-in slide-in-from-right-4 duration-300">
+                  <div className="flex items-center justify-between text-[10px] mb-1">
+                    <span className="text-slate-500 font-mono">{log.time}</span>
+                    <span className={`font-bold ${log.type === 'success' ? 'text-green-500' : log.type === 'error' ? 'text-red-500' : 'text-blue-400'}`}>
+                      {log.type.toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">{log.msg}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+const ToolButton = ({ icon, title, desc, onClick, disabled, isSpecial }) => (
+  <button 
+    onClick={onClick}
+    disabled={disabled}
+    className={`
+      group p-6 rounded-3xl border transition-all duration-300 text-left relative overflow-hidden
+      ${disabled 
+        ? 'opacity-40 cursor-not-allowed border-slate-100 bg-slate-50' 
+        : isSpecial 
+          ? 'border-amber-100 bg-white hover:border-amber-400 hover:shadow-xl hover:shadow-amber-100'
+          : 'border-slate-200 bg-white hover:border-blue-400 hover:shadow-xl hover:shadow-blue-100'
+      }
+    `}
+  >
+    <div className={`
+      w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110
+      ${disabled ? 'bg-slate-200 text-slate-400' : isSpecial ? 'bg-amber-500 text-white' : 'bg-slate-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'}
+    `}>
+      {icon}
+    </div>
+    <h4 className="font-bold text-slate-800 transition-colors group-hover:text-blue-700">{title}</h4>
+    <p className="text-xs text-slate-500 mt-2 leading-relaxed">{desc}</p>
+    {!disabled && (
+      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Download size={16} className={isSpecial ? 'text-amber-500' : 'text-blue-500'} />
+      </div>
+    )}
+  </button>
+);
+
+const PlaceholderPanel = ({ title, icon }) => (
+  <div className="flex flex-col items-center justify-center py-24 text-center space-y-6 animate-in zoom-in-95 duration-500">
+    <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center text-slate-300">
+      {icon}
+    </div>
+    <div>
+      <h2 className="text-3xl font-bold text-slate-800">{title}</h2>
+      <p className="text-slate-500 mt-2 max-w-sm">
+        Este módulo requiere integración con un servicio de Backend (Node.js/Python) para realizar web scraping en tiempo real.
+      </p>
+    </div>
+    <div className="flex gap-4">
+      <button className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors">
+        Contactar Soporte
+      </button>
+      <button className="px-6 py-3 border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors">
+        Ver Documentación
+      </button>
+    </div>
+  </div>
+);
+
+export default App;
